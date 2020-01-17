@@ -35,8 +35,6 @@ import java.net.URL;
 public class RNPrintModule extends ReactContextBaseJavaModule {
 
     ReactApplicationContext reactContext;
-    final String defaultJobName = "Document";
-
 
     public RNPrintModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -53,10 +51,11 @@ public class RNPrintModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void print(final ReadableMap options, final Promise promise) {
 
+        final String jobName = options.hasKey("jobName") ? options.getString("jobName") : "Document";
         final String html = options.hasKey("html") ? options.getString("html") : null;
         final String filePath = options.hasKey("filePath") ? options.getString("filePath") : null;
-        final boolean isLandscape = options.hasKey("isLandscape") ? options.getBoolean("isLandscape") : false;
-        final String jobName = options.hasKey("jobName") ? options.getString("jobName") : defaultJobName;
+        //final boolean isLandscape = options.hasKey("isLandscape") ? options.getBoolean("isLandscape") : false;
+        final boolean isColour = options.hasKey("isColour") ? options.getBoolean("isColour") : false;
 
         if ((html == null && filePath == null) || (html != null && filePath != null)) {
             promise.reject(getName(), "Must provide either `html` or `filePath`.  Both are either missing or passed together");
@@ -103,12 +102,12 @@ public class RNPrintModule extends ReactContextBaseJavaModule {
                                     @Override
                                     public void onFinish() {
                                         mWrappedInstance.onFinish();
-                                        promise.resolve(jobName);
                                     }
                                 };
                                 // Pass in the ViewView's document adapter.
                                 printManager.print(jobName, adapter, null);
                                 mWebView = null;
+                                promise.resolve(jobName);
                             }
                         });
 
@@ -169,17 +168,18 @@ public class RNPrintModule extends ReactContextBaseJavaModule {
 
                         callback.onLayoutFinished(pdi, true);
                     }
-
-                    @Override
-                    public void onFinish() {
-                        promise.resolve(jobName);
-                    }
                 };
 
-                PrintAttributes printAttributes = new PrintAttributes.Builder()
+                /*PrintAttributes printAttributes = new PrintAttributes.Builder()
                         .setMediaSize(isLandscape?PrintAttributes.MediaSize.UNKNOWN_LANDSCAPE:PrintAttributes.MediaSize.UNKNOWN_PORTRAIT)
+                        .build();*/
+                PrintAttributes printAttributes = new PrintAttributes.Builder()
+                        .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                        .setColorMode(isColour?PrintAttributes.COLOR_MODE_COLOR:PrintAttributes.COLOR_MODE_MONOCHROME)
                         .build();
+
                 printManager.print(jobName, pda, printAttributes);
+                promise.resolve(jobName);
 
             } catch (Exception e) {
                 promise.reject(getName(), e);
